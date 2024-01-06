@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
@@ -8,18 +9,160 @@ namespace copiaPaquetes
     public partial class frmInicio : Form
     {
         variables variable = new variables();
+        Programas programa = new Programas();
+
+
+        private Dictionary<System.Windows.Forms.CheckBox, string> checkBoxVariables = new Dictionary<System.Windows.Forms.CheckBox, string>();
+
 
         public frmInicio()
         {
             InitializeComponent();
+
+            //Suscribe al evento cuando se selecciona una pestaña del tabControl
             tabControl1.SelectedIndexChanged += TabControl1_SelectedIndexChanged;
+
+            //Agrega al diccionario de checkbox los nombres de las variables a vincular
+            checkBoxVariables.Add(cbx_ipcont08, "ipcont08");
+            checkBoxVariables.Add(cbx_ipbasica, "ipbasica");
+            checkBoxVariables.Add(cbx_ipmodelo, "ipmodelo");
+            checkBoxVariables.Add(cbx_ipintegr, "ipintegr");
+            checkBoxVariables.Add(cbx_dsarchi, "dsarchi");
+            checkBoxVariables.Add(cbx_ipconts2, "ipconts2");
+            checkBoxVariables.Add(cbx_ippatron, "ippatron");
+            checkBoxVariables.Add(cbx_iprent23, "iprent23");
+            checkBoxVariables.Add(cbx_iprent22, "iprent22");
+            checkBoxVariables.Add(cbx_iprent21, "iprent21");
+            checkBoxVariables.Add(cbx_ipabogax, "ipabogax");
+            checkBoxVariables.Add(cbx_ipabogad, "ipabogad");
+            checkBoxVariables.Add(cbx_ipabopar, "ipabopar");
+            checkBoxVariables.Add(cbx_000adc, "v000adc");
+            checkBoxVariables.Add(cbx_siibase, "siibase");
+            checkBoxVariables.Add(cbx_certbase, "certbase");
+            checkBoxVariables.Add(cbx_notibase, "notibase");
+            checkBoxVariables.Add(cbx_desdespa, "dsedespa");
+            checkBoxVariables.Add(cbx_dsesign, "dsesign");
+            checkBoxVariables.Add(cbx_n43base, "n43base");
+            checkBoxVariables.Add(cbx_contalap, "contalap");
+
+            // Suscribir al evento CheckedChanged para todos los CheckBoxes
+            foreach (var elemento in checkBoxVariables)
+            {
+                elemento.Key.CheckedChanged += CheckBox_CheckedChanged;
+            }
 
             //Lee el fichero de configuracion para cargar las variables
             variable.CargarConfiguracion();
 
             //Rellena los textBox con los valores cargados en las variables desde el fichero de configuracion
-            lbl_destino.Text = variable.destino;
-            ActualizaTextBox();
+            //lbl_destino.Text = variable.destino;
+            cb_destino.SelectedIndex = 0;
+            LimpiaCbxPi();
+        }
+
+        private void LimpiaCbxPi()
+        {
+            foreach (System.Windows.Forms.CheckBox cbx in panel1.Controls)
+            {
+                cbx.Checked = false;
+            }
+        }
+
+        private void CheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            // Cuando hay algun cambio en los checkbox se captura cual es
+            System.Windows.Forms.CheckBox checkBox = (System.Windows.Forms.CheckBox)sender;
+
+            // Se obtiene la variable asociada al CheckBox
+            string nombreVariable = checkBoxVariables[checkBox];
+
+            // Segun la variable asociada al checkbox, se modifica el valor de la variable correspondiente
+            switch (nombreVariable)
+            {
+                case "ipcont08":
+                    programa.ipcont08 = checkBox.Checked;
+                    break;
+
+                case "ipbasica":
+                    programa.ipbasica = checkBox.Checked;
+                    break;
+
+                case "ipmodelo":
+                    programa.ipmodelo = checkBox.Checked;
+                    break;
+
+                case "ipintegr":
+                    programa.ipintegr = checkBox.Checked;
+                    break;
+
+                case "dsarchi":
+                    programa.dsarchi = checkBox.Checked;
+                    break;
+
+                case "ipconts2":
+                    programa.ipconts2 = checkBox.Checked;
+                    break;
+
+                case "ippatron":
+                    programa.ippatron = checkBox.Checked;
+                    break;
+
+                case "iprent23":
+                    programa.iprent23 = checkBox.Checked;
+                    break;
+
+                case "iprent22":
+                    programa.iprent22 = checkBox.Checked;
+                    break;
+
+                case "iprent21":
+                    programa.iprent21 = checkBox.Checked;
+                    break;
+
+                case "ipabogax":
+                    programa.ipabogax = checkBox.Checked;
+                    break;
+
+                case "ipabogad":
+                    programa.ipabogad = checkBox.Checked;
+                    break;
+
+                case "ipabopar":
+                    programa.ipabopar = checkBox.Checked;
+                    break;
+
+                case "v000adc":
+                    programa.v000adc = checkBox.Checked;
+                    break;
+
+                case "siibase":
+                    programa.siibase = checkBox.Checked;
+                    break;
+
+                case "certbase":
+                    programa.certbase = checkBox.Checked;
+                    break;
+
+                case "notibase":
+                    programa.notibase = checkBox.Checked;
+                    break;
+
+                case "dsedespa":
+                    programa.dsedespa = checkBox.Checked;
+                    break;
+
+                case "dsesign":
+                    programa.dsesign = checkBox.Checked;
+                    break;
+
+                case "n43base":
+                    programa.n43base = checkBox.Checked;
+                    break;
+
+                case "contalap":
+                    programa.contalap = checkBox.Checked;
+                    break;
+            }
         }
 
         public void ActualizaTextBox()
@@ -35,124 +178,74 @@ namespace copiaPaquetes
             txtDestinoPasesnoPi.Text = variable.destinoPasesnoPi;
         }
 
-        private void btnCopiar_Click(object sender, EventArgs e)
-        {
-            //Lanza el proceso de copia segun los checkBox marcados en los programas
-            foreach (System.Windows.Forms.Control groupBox in tabControl1.TabPages["tabPage1"].Controls)
-            {
-                if (groupBox is System.Windows.Forms.GroupBox && groupBox.Name == "groupBox1")
-                {
-                    foreach (System.Windows.Forms.Control checkBoxControl in groupBox.Controls)
-                    {
-                        if (checkBoxControl is System.Windows.Forms.CheckBox checkBox && checkBox.Checked)
-                        {
-                            switch (checkBoxControl)
-                            {
-                                case System.Windows.Forms.CheckBox cbx when cbx == cbx_ipcont08:
-                                    string fichero = @"\ipcont08\pcont08z.tgz";
-                                    LanzaCopia(fichero);
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        public void btnGuardarConfiguracion_MouseClick(object sender, MouseEventArgs e)
-        {
-            //Graba en el fichero de configuracion las variables
-            variable.GuardarConfiguracion();
-        }
-
-
         private void TabControl1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Verificar si la pestaña seleccionada es tabPage5
-            if (tabControl1.SelectedTab == tabPage5)
+            // Verificar si la pestaña seleccionada es la de Configuracion
+            if (tabControl1.SelectedTab == tabConfiguracion)
             {
-                // Ejecutar el método cuando se selecciona tabPage5
+                // Ejecutar el método cuando se selecciona la pestaña configuracion
+                //LimpiaCbxPi();
                 variable.CargarConfiguracion();
                 ActualizaTextBox();
             }
-        }
 
-        #region control marcas programas
-        private void cbx_ipcont08_CheckStateChanged(object sender, EventArgs e)
-        {
-            if (cbx_ipcont08.Checked)
+            if (tabControl1.SelectedTab == tabProgramasPi)
             {
-                variable.ipcont08 = $@"{variable.rutaPi}\ipcont08\pcont08z.tgz";
-            }
-            else
-            {
-                variable.ipcont08 = string.Empty;
+                txtProgresoCopia.Clear();
+                LimpiaCbxPi();
             }
         }
-
-        private void cbx_ipbasica_CheckStateChanged(object sender, EventArgs e)
-        {
-            variable.ipbasica = cbx_ipbasica.Checked;
-        }
-
-        private void cbx_ipmodelo_CheckStateChanged(object sender, EventArgs e)
-        {
-            variable.ipmodelo = cbx_ipmodelo.Checked;
-        }
-
-        private void cbx_ipintegr_CheckStateChanged(object sender, EventArgs e)
-        {
-            variable.ipintegr = cbx_ipintegr.Checked;
-        }
-
-        private void cbx_dsarchi_CheckStateChanged(object sender, EventArgs e)
-        {
-            variable.dsarchi = cbx_dsarchi.Checked;
-        }
-
-        #endregion
 
 
         private void LanzaCopia(string fichero)
         {
-            //Nota Esta parte no la tengo probada
-            string origenCopia = variable.origen + fichero;
-            string destinoCopia = variable.destino + fichero;
+            string origen = variable.rutaPi + fichero;
 
-            // Configura la información del proceso
-            ProcessStartInfo processStartInfo = new ProcessStartInfo
+            try
             {
-                FileName = @"C:\Users\oficina\AppData\Local\Programs\WinSCP\WinSCP.com",
-                Arguments = $"/ini=nul /command \"open sftp://centos@172.31.5.149/ -hostkey=\"\"ssh-ed25519 255 ypCFfhJskB3YSCzQzF5iHV0eaWxlBIvMeM5kRl4N46o=\"\" -privatekey=\"\"C:\\Oficina_ds\\Diagram\\Accesos portatil\\conexiones VPN\\Credenciales SSH\\aws_diagram_irlanda.ppk\"\" -rawsettings AgentFwd=1\" \"put {origenCopia} {destinoCopia}\" \"exit\"",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            // Crea y comienza el proceso
-            using (Process process = new Process { StartInfo = processStartInfo })
-            {
-                process.OutputDataReceived += (sender, e) =>
+                // Configura la información del proceso
+                ProcessStartInfo processStartInfo = new ProcessStartInfo
                 {
-                    // Muestra el progreso en un TextBox (suponiendo que tienes un TextBox llamado textBoxOutput)
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        ResultadoCopia(e.Data);
-                    }
+                    FileName = @"C:\Users\oficina\AppData\Local\Programs\WinSCP\WinSCP.com",
+                    Arguments = $"/ini=nul /command \"open sftp://centos@172.31.5.149/ -hostkey=\"\"ssh-ed25519 255 ypCFfhJskB3YSCzQzF5iHV0eaWxlBIvMeM5kRl4N46o=\"\" -privatekey=\"\"C:\\Oficina_ds\\Diagram\\Accesos portatil\\conexiones VPN\\Credenciales SSH\\aws_diagram_irlanda.ppk\"\" -rawsettings AgentFwd=1\" \"put {origen} {variable.destino}\" \"exit\"",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
                 };
 
-                // Inicia la redirección de la salida estándar
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
+                // Crea y comienza el proceso
+                using (Process process = new Process { StartInfo = processStartInfo })
+                {
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        // Muestra el progreso en un TextBox (suponiendo que tienes un TextBox llamado textBoxOutput)
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            ResultadoCopia(e.Data);
+                        }
+                    };
 
-                process.Start();
+                    // Inicia la redirección de la salida estándar
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
 
-                // Inicia la recepción de datos de salida de forma asincrónica
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                    process.Start();
 
-                process.WaitForExit();
+                    // Inicia la recepción de datos de salida de forma asincrónica
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    process.WaitForExit();
+                }
+
             }
+
+            catch (Exception ex)
+            {
+                txtProgresoCopia.AppendText(Environment.NewLine + $"Error al copiar el fichero {fichero}" + Environment.NewLine);
+                txtProgresoCopia.AppendText(ex.Message + Environment.NewLine);
+            }
+
         }
 
         private void ResultadoCopia(string resultado)
@@ -320,8 +413,68 @@ namespace copiaPaquetes
 
         #endregion
 
-
         #region MouseClick
+
+        private void btnCopiar_Click(object sender, EventArgs e)
+        {
+            txtProgresoCopia.Clear();
+            int controlCbx = 0;
+            foreach (System.Windows.Forms.CheckBox cbx in panel1.Controls)
+            {
+                if (cbx.Checked)
+                {
+                    controlCbx++;
+                }
+            }
+            if (controlCbx > 0)
+            {
+
+            //Lanza el proceso de copia segun los checkBox marcados en los programas
+            AsignaProgramasCopia(programa.ipcont08, programa.ipcont08Ruta);
+            AsignaProgramasCopia(programa.ipbasica, programa.ipbasicaRuta);
+            AsignaProgramasCopia(programa.ipmodelo, programa.ipmodeloRuta);
+            AsignaProgramasCopia(programa.ipintegr, programa.ipintegrRuta);
+            AsignaProgramasCopia(programa.dsarchi, programa.dsarchiRuta);
+            AsignaProgramasCopia(programa.ipconts2, programa.ipconts2Ruta);
+            AsignaProgramasCopia(programa.iprent23, programa.iprent23Ruta);
+            AsignaProgramasCopia(programa.iprent22, programa.iprent22Ruta);
+            AsignaProgramasCopia(programa.iprent21, programa.iprent21Ruta);
+            AsignaProgramasCopia(programa.ippatron, programa.ippatronRuta);
+            AsignaProgramasCopia(programa.contalap, programa.contalapRuta);
+            AsignaProgramasCopia(programa.v000adc, programa.v000adcRuta);
+            AsignaProgramasCopia(programa.ipabogax, programa.ipabogaxRuta);
+            AsignaProgramasCopia(programa.ipabogad, programa.ipabogadRuta);
+            AsignaProgramasCopia(programa.ipabopar, programa.ipaboparRuta);
+            AsignaProgramasCopia(programa.siibase, programa.siibaseRuta);
+            AsignaProgramasCopia(programa.certbase, programa.certbaseRuta);
+            AsignaProgramasCopia(programa.notibase, programa.notibaseRuta);
+            AsignaProgramasCopia(programa.dsedespa, programa.dsedespaRuta);
+            AsignaProgramasCopia(programa.dsesign, programa.dsesignRuta);
+            AsignaProgramasCopia(programa.n43base, programa.n43baseRuta);
+            }
+            else
+            {
+                MessageBox.Show("No ha seleccionado ningun programa","Error",MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+        }
+
+
+        private void AsignaProgramasCopia(bool programa, string nombrePrograma)
+        {
+            //Si el checkbox del programa pasado esta marcado, se lanza la copia del programa
+            if (programa)
+            {
+                LanzaCopia(nombrePrograma);
+            }
+        }
+
+        public void btnGuardarConfiguracion_MouseClick(object sender, MouseEventArgs e)
+        {
+            //Graba en el fichero de configuracion las variables
+            variable.GuardarConfiguracion();
+        }
+
         private void btnRutaPi_MouseClick(object sender, MouseEventArgs e)
         {
             if (txtRutaPi.Enabled == false)
@@ -329,13 +482,13 @@ namespace copiaPaquetes
                 txtRutaPi.Enabled = true;
                 txtRutaPi.Focus();
                 txtRutaPi.SelectionStart = txtRutaPi.TextLength;
-                btnRutaPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnRutaPi");
             }
             else
             {
                 variable.rutaPi = txtRutaPi.Text;
                 txtRutaPi.Enabled = false;
-                btnRutaPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnRutaPi");
             }
         }
 
@@ -346,13 +499,13 @@ namespace copiaPaquetes
                 txtRutanoPi.Enabled = true;
                 txtRutanoPi.Focus();
                 txtRutanoPi.SelectionStart = txtRutanoPi.TextLength;
-                btnRutanoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnRutanoPi");
             }
             else
             {
                 variable.rutanoPi = txtRutanoPi.Text;
                 txtRutanoPi.Enabled = false;
-                btnRutanoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnRutanoPi");
             }
         }
 
@@ -363,13 +516,13 @@ namespace copiaPaquetes
                 txtRutaGestion.Enabled = true;
                 txtRutaGestion.Focus();
                 txtRutaGestion.SelectionStart = txtRutaGestion.TextLength;
-                btnRutaGestion.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnRutaGestion");
             }
             else
             {
                 variable.rutaGestion = txtRutaGestion.Text;
                 txtRutaGestion.Enabled = false;
-                btnRutaGestion.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnRutaGestion");
             }
         }
 
@@ -380,13 +533,13 @@ namespace copiaPaquetes
                 txtRutaGasoleos.Enabled = true;
                 txtRutaGasoleos.Focus();
                 txtRutaGasoleos.SelectionStart = txtRutaGasoleos.TextLength;
-                btnRutaGasoleos.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnRutaGasoleos");
             }
             else
             {
                 variable.rutaGasoleos = txtRutaPi.Text;
                 txtRutaGasoleos.Enabled = false;
-                btnRutaGasoleos.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnRutaGasoleos");
             }
         }
 
@@ -394,16 +547,17 @@ namespace copiaPaquetes
         {
             if (txtDestinoPi.Enabled == false)
             {
+                btnGuardarConfiguracion.Enabled = false;
                 txtDestinoPi.Enabled = true;
                 txtDestinoPi.Focus();
                 txtDestinoPi.SelectionStart = txtDestinoPi.TextLength;
-                btnDestinoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnDestinoPi");
             }
             else
             {
                 variable.destinoPi = txtDestinoPi.Text;
                 txtDestinoPi.Enabled = false;
-                btnDestinoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnDestinoPi");
             }
         }
 
@@ -414,13 +568,13 @@ namespace copiaPaquetes
                 txtDestinonoPi.Enabled = true;
                 txtDestinonoPi.Focus();
                 txtDestinonoPi.SelectionStart = txtDestinonoPi.TextLength;
-                btnDestinonoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnDestinonoPi");
             }
             else
             {
                 variable.destinonoPi = txtDestinonoPi.Text;
                 txtDestinonoPi.Enabled = false;
-                btnDestinonoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnDestinonoPi");
             }
         }
 
@@ -431,13 +585,13 @@ namespace copiaPaquetes
                 txtDestinoLocal.Enabled = true;
                 txtDestinoLocal.Focus();
                 txtDestinoLocal.SelectionStart = txtDestinoLocal.TextLength;
-                btnDestinoLocal.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnDestinoLocal");
             }
             else
             {
                 variable.destinoLocal = txtDestinoLocal.Text;
                 txtDestinoLocal.Enabled = false;
-                btnDestinoLocal.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnDestinoLocal");
             }
         }
 
@@ -448,13 +602,14 @@ namespace copiaPaquetes
                 txtDestinoPasesPi.Enabled = true;
                 txtDestinoPasesPi.Focus();
                 txtDestinoPasesPi.SelectionStart = txtDestinoPasesPi.TextLength;
-                btnDestinoPasesPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnDestinoPasesPi");
+
             }
             else
             {
                 variable.destinoPasesPi = txtDestinoPasesPi.Text;
                 txtDestinoPasesPi.Enabled = false;
-                btnDestinoPasesPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnDestinoPasesPi");
             }
         }
 
@@ -465,21 +620,91 @@ namespace copiaPaquetes
                 txtDestinoPasesnoPi.Enabled = true;
                 txtDestinoPasesnoPi.Focus();
                 txtDestinoPasesnoPi.SelectionStart = txtDestinoPasesnoPi.TextLength;
-                btnDestinoPasesnoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                gestionBotones(true, "btnDestinoPasesnoPi");
             }
             else
             {
                 variable.destinoPasesnoPi = txtDestinoPasesnoPi.Text;
                 txtDestinoPasesnoPi.Enabled = false;
-                btnDestinoPasesnoPi.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                gestionBotones(false, "btnDestinoPasesnoPi");
             }
         }
 
+        private void gestionBotones(bool estado, string nombreBoton)
+        {
+            foreach (Control control in tabControl1.TabPages["tabConfiguracion"].Controls)
+            {
+                if (control is Button btn)
+                {
+                    if (estado)
+                    {
+                        if (btn.Name == nombreBoton)
+                        {
+                            btn.BackgroundImage = global::copiaPaquetes.Properties.Resources.guardar;
+                        }
+                        else
+                        {
+                            btn.Enabled = false;
+                            if (btn.Name != btnGuardarConfiguracion.Name)
+                            {
+                                btn.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar_noActivo;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (btn.Name == nombreBoton)
+                        {
+                            btn.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                        }
+                        else
+                        {
+                            btn.Enabled = true;
+                            if (btn.Name != btnGuardarConfiguracion.Name)
+                            {
+                                btn.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
+                            }
+
+                        }
+                    }
+                }
+            }
+
+
+
+        }
 
         #endregion
 
-        
+
+        private void cb_destino_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int indice = cb_destino.SelectedIndex;
+
+            switch (indice)
+            {
+                case 0:
+                    variable.destino = variable.destinoPi;
+                    break;
+
+                case 1:
+                    variable.destino = variable.destinonoPi;
+                    break;
+
+                case 2:
+                    variable.destino = variable.destinoLocal;
+                    break;
+
+                case 3:
+                    variable.destino = variable.destinoPasesPi;
+                    break;
+
+                case 4:
+                    variable.destino = variable.destinoPasesnoPi;
+                    break;
+
+
+            }
+        }
     }
-
-
 }
