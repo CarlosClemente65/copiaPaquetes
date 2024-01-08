@@ -119,6 +119,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="imagenes\editar.png" />
+    <None Include="imagenes\guardar_noActivo.png" />
     <None Include="imagenes\editar_noActivo.png" />
     <None Include="imagenes\guardar.png" />
     <None Include="imagenes\editar_hover.png" />
