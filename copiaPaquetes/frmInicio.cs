@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Security.Cryptography.Xml;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using WinSCP;
+using static System.Collections.Specialized.BitVector32;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 namespace copiaPaquetes
@@ -209,7 +214,7 @@ namespace copiaPaquetes
                     break;
 
                 case "dsgalx":
-                    programa.dsgalx= checkBox.Checked;
+                    programa.dsgalx = checkBox.Checked;
                     break;
 
                 case "iplabor2":
@@ -305,52 +310,88 @@ namespace copiaPaquetes
         private void LanzaCopia(string fichero)
         {
             string origen = variable.rutaPi + fichero;
-
+            string nombreFichero = Path.GetFileName(fichero); //Obtiene el nombre del programa
+            string destino = variable.destino + nombreFichero; //Forma la ruta completa del programa
             try
             {
-                // Configura la información del proceso
-                ProcessStartInfo processStartInfo = new ProcessStartInfo
+                //Controla para hacer la copia local
+                if (variable.destino == variable.destinoLocal)
                 {
-                    FileName = @"C:\Users\oficina\AppData\Local\Programs\WinSCP\WinSCP.com",
-                    Arguments = $"/ini=nul /command \"open sftp://centos@172.31.5.149/ -hostkey=\"\"ssh-ed25519 255 ypCFfhJskB3YSCzQzF5iHV0eaWxlBIvMeM5kRl4N46o=\"\" -privatekey=\"\"C:\\Oficina_ds\\Diagram\\Accesos portatil\\conexiones VPN\\Credenciales SSH\\aws_diagram_irlanda.ppk\"\" -rawsettings AgentFwd=1\" \"put {origen} {variable.destino}\" \"exit\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                // Crea y comienza el proceso
-                using (Process process = new Process { StartInfo = processStartInfo })
-                {
-                    process.OutputDataReceived += (sender, e) =>
+                    try
                     {
-                        // Muestra el progreso en un TextBox (suponiendo que tienes un TextBox llamado textBoxOutput)
-                        if (!string.IsNullOrEmpty(e.Data))
-                        {
-                            ResultadoCopia(e.Data);
-                        }
+                        ActualizarProgreso(Environment.NewLine + $"Copiando archivo {nombreFichero}");
+                        File.Copy(origen, destino, true);
+                        ActualizarProgreso($"Archivo copiado: {nombreFichero}");
+                    }
+                    catch (Exception ex)
+                    {
+                        ActualizarProgreso(Environment.NewLine + $"No se ha podido copiar el fichero {nombreFichero}" + Environment.NewLine + ex.Message);
+                    }
+                }
+                else
+                {
+                    ActualizarProgreso(Environment.NewLine + $"Copiando archivo {nombreFichero}");
+                    // Configuración de opciones de sesión para la copia al geco72
+                    SessionOptions sessionOptions = new SessionOptions
+                    {
+                        Protocol = Protocol.Sftp,
+                        HostName = "172.31.5.149",
+                        UserName = "centos",
+                        SshHostKeyFingerprint = "ssh-ed25519 255 ypCFfhJskB3YSCzQzF5iHV0eaWxlBIvMeM5kRl4N46o=",
+                        SshPrivateKeyPath = @"C:\Oficina_ds\Diagram\Accesos portatil\conexiones VPN\Credenciales SSH\aws_diagram_irlanda.ppk",
                     };
+                    sessionOptions.AddRawSettings("AgentFwd", "1");
 
-                    // Inicia la redirección de la salida estándar
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
 
-                    process.Start();
+                    using (Session session = new Session())
+                    {
+                        ////Permite hacer un log del resultado. La dejo comentada por si hace falta
+                        //string logFile = @"c:\carlos\winscp.log";
+                        //if (!File.Exists(logFile))
+                        //{
+                        //    File.Create(logFile).Close();
+                        //}
+                        //else
+                        //{
+                        //    File.Delete(logFile);
+                        //    File.Create(logFile).Close();
+                        //}
+                        //session.SessionLogPath = logFile;
 
-                    // Inicia la recepción de datos de salida de forma asincrónica
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
+                        // Conexión
+                        session.Open(sessionOptions);
 
-                    process.WaitForExit();
+                        TransferOptions transferOptions = new TransferOptions();
+                        transferOptions.TransferMode = TransferMode.Binary;
+
+                        TransferOperationResult transferResult = session.PutFiles(origen, variable.destino, false, transferOptions);
+                        transferResult.Check();
+
+                        // Muestra información sobre la transferencia al finalizar
+                        foreach (TransferEventArgs transfer in transferResult.Transfers)
+                        {
+                            ActualizarProgreso($"Archivo copiado: {nombreFichero}");
+                        }
+                    }
                 }
 
             }
-
             catch (Exception ex)
             {
-                txtProgresoCopia.AppendText(Environment.NewLine + $"Error al copiar el fichero {fichero}" + Environment.NewLine);
-                txtProgresoCopia.AppendText(ex.Message + Environment.NewLine);
+                ActualizarProgreso(Environment.NewLine + $"Error al copiar el fichero {fichero}" + Environment.NewLine + ex.Message);
             }
+        }
 
+        private void ActualizarProgreso(string mensaje)
+        {
+            if (txtProgresoCopia.InvokeRequired)
+            {
+                txtProgresoCopia.Invoke(new Action(() => ActualizarProgreso(mensaje)));
+            }
+            else
+            {
+                txtProgresoCopia.AppendText(mensaje + Environment.NewLine);
+            }
         }
 
         private void ResultadoCopia(string resultado)
@@ -594,68 +635,83 @@ namespace copiaPaquetes
 
         private void btnCopiar_Click(object sender, EventArgs e)
         {
-            txtProgresoCopia.Text = string.Empty;
             int controlCbx = 0;
-            foreach(Control control in panel1.Controls)
+            int controlDbxnoPI = 0;
+            foreach (Control control in panel1.Controls)
             {
                 if (control is System.Windows.Forms.CheckBox cbx && cbx.Checked)
                 {
-                    controlCbx++;
+                    if (cbx.Tag == "noPI" && variable.destino != variable.destinonoPi)
+                    {
+                        controlDbxnoPI++;
+                    }
+                    else
+                    {
+                        controlCbx++;
+                    }
                 }
             }
-            if (controlCbx > 0)
+
+            if (controlDbxnoPI > 0)
             {
-
-                //Lanza el proceso de copia segun los checkBox marcados en los programas
-                //Programas PI
-                AsignaProgramasCopia(programa.ipcont08, programa.ipcont08Ruta);
-                AsignaProgramasCopia(programa.siibase, programa.siibaseRuta);
-                AsignaProgramasCopia(programa.v000adc, programa.v000adcRuta);
-                AsignaProgramasCopia(programa.n43base, programa.n43baseRuta);
-                AsignaProgramasCopia(programa.contalap, programa.contalapRuta);
-                AsignaProgramasCopia(programa.ipmodelo, programa.ipmodeloRuta);
-                AsignaProgramasCopia(programa.iprent23, programa.iprent23Ruta);
-                AsignaProgramasCopia(programa.iprent22, programa.iprent22Ruta);
-                AsignaProgramasCopia(programa.iprent21, programa.iprent21Ruta);
-                AsignaProgramasCopia(programa.ipconts2, programa.ipconts2Ruta);
-                AsignaProgramasCopia(programa.ipabogax, programa.ipabogaxRuta);
-                AsignaProgramasCopia(programa.ipabogad, programa.ipabogadRuta);
-                AsignaProgramasCopia(programa.ipabopar, programa.ipaboparRuta);
-                AsignaProgramasCopia(programa.dscomer9, programa.dscomer9Ruta);
-                AsignaProgramasCopia(programa.dscarter, programa.dscarterRuta);
-                AsignaProgramasCopia(programa.dsarchi, programa.dsarchiRuta);
-                AsignaProgramasCopia(programa.notibase, programa.notibaseRuta);
-                AsignaProgramasCopia(programa.certbase, programa.certbaseRuta);
-                AsignaProgramasCopia(programa.dsesign, programa.dsesignRuta);
-                AsignaProgramasCopia(programa.dsedespa, programa.dsedespaRuta);
-                AsignaProgramasCopia(programa.ipintegr, programa.ipintegrRuta);
-                AsignaProgramasCopia(programa.ipbasica, programa.ipbasicaRuta);
-                AsignaProgramasCopia(programa.ippatron, programa.ippatronRuta);
-                AsignaProgramasCopia(programa.gasbase, programa.gasbaseRuta);
-                AsignaProgramasCopia(programa.dscepsax, programa.dscepsaxRuta);
-                AsignaProgramasCopia(programa.dsgalx, programa.dsgalxRuta);
-                AsignaProgramasCopia(programa.iplabor2, programa.iplabor2Ruta);
-
-
-
-                //Programas noPI
-                AsignaProgramasCopia(programa.star308, programa.star308Ruta);
-                AsignaProgramasCopia(programa.starpat, programa.starpatRuta);
-                AsignaProgramasCopia(programa.ereo, programa.ereoRuta);
-                AsignaProgramasCopia(programa.esocieda, programa.esociedaRuta);
-                AsignaProgramasCopia(programa.efacges, programa.efacgesRuta);
-                AsignaProgramasCopia(programa.eintegra, programa.eintegraRuta);
-                AsignaProgramasCopia(programa.ereopat, programa.ereopatRuta);
-                AsignaProgramasCopia(programa.enom1, programa.enom1Ruta);
-                AsignaProgramasCopia(programa.enom2, programa.enom2Ruta);
-                AsignaProgramasCopia(programa.ered, programa.eredRuta);
-                AsignaProgramasCopia(programa.enompat, programa.enompatRuta);
-                AsignaProgramasCopia(programa.dscepsa, programa.dscepsaRuta);
-                AsignaProgramasCopia(programa.dsgal, programa.dsgalRuta);
+                MessageBox.Show("No puede seleccionar programas noPI si el destino es la carpeta de PI", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             else
             {
-                MessageBox.Show("No ha seleccionado ningun programa", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                if (controlCbx > 0)
+                {
+                    //Lanza el proceso de copia segun los checkBox marcados en los programas
+                    //Programas PI
+                    AsignaProgramasCopia(programa.ipcont08, programa.ipcont08Ruta);
+                    AsignaProgramasCopia(programa.siibase, programa.siibaseRuta);
+                    AsignaProgramasCopia(programa.v000adc, programa.v000adcRuta);
+                    AsignaProgramasCopia(programa.n43base, programa.n43baseRuta);
+                    AsignaProgramasCopia(programa.contalap, programa.contalapRuta);
+                    AsignaProgramasCopia(programa.ipmodelo, programa.ipmodeloRuta);
+                    AsignaProgramasCopia(programa.iprent23, programa.iprent23Ruta);
+                    AsignaProgramasCopia(programa.iprent22, programa.iprent22Ruta);
+                    AsignaProgramasCopia(programa.iprent21, programa.iprent21Ruta);
+                    AsignaProgramasCopia(programa.ipconts2, programa.ipconts2Ruta);
+                    AsignaProgramasCopia(programa.ipabogax, programa.ipabogaxRuta);
+                    AsignaProgramasCopia(programa.ipabogad, programa.ipabogadRuta);
+                    AsignaProgramasCopia(programa.ipabopar, programa.ipaboparRuta);
+                    AsignaProgramasCopia(programa.dscomer9, programa.dscomer9Ruta);
+                    AsignaProgramasCopia(programa.dscarter, programa.dscarterRuta);
+                    AsignaProgramasCopia(programa.dsarchi, programa.dsarchiRuta);
+                    AsignaProgramasCopia(programa.notibase, programa.notibaseRuta);
+                    AsignaProgramasCopia(programa.certbase, programa.certbaseRuta);
+                    AsignaProgramasCopia(programa.dsesign, programa.dsesignRuta);
+                    AsignaProgramasCopia(programa.dsedespa, programa.dsedespaRuta);
+                    AsignaProgramasCopia(programa.ipintegr, programa.ipintegrRuta);
+                    AsignaProgramasCopia(programa.ipbasica, programa.ipbasicaRuta);
+                    AsignaProgramasCopia(programa.ippatron, programa.ippatronRuta);
+                    AsignaProgramasCopia(programa.gasbase, programa.gasbaseRuta);
+                    AsignaProgramasCopia(programa.dscepsax, programa.dscepsaxRuta);
+                    AsignaProgramasCopia(programa.dsgalx, programa.dsgalxRuta);
+                    AsignaProgramasCopia(programa.iplabor2, programa.iplabor2Ruta);
+
+                    //Programas noPI
+                    AsignaProgramasCopia(programa.star308, programa.star308Ruta);
+                    AsignaProgramasCopia(programa.starpat, programa.starpatRuta);
+                    AsignaProgramasCopia(programa.ereo, programa.ereoRuta);
+                    AsignaProgramasCopia(programa.esocieda, programa.esociedaRuta);
+                    AsignaProgramasCopia(programa.efacges, programa.efacgesRuta);
+                    AsignaProgramasCopia(programa.eintegra, programa.eintegraRuta);
+                    AsignaProgramasCopia(programa.ereopat, programa.ereopatRuta);
+                    AsignaProgramasCopia(programa.enom1, programa.enom1Ruta);
+                    AsignaProgramasCopia(programa.enom2, programa.enom2Ruta);
+                    AsignaProgramasCopia(programa.ered, programa.eredRuta);
+                    AsignaProgramasCopia(programa.enompat, programa.enompatRuta);
+                    AsignaProgramasCopia(programa.dscepsa, programa.dscepsaRuta);
+                    AsignaProgramasCopia(programa.dsgal, programa.dsgalRuta);
+
+                    MessageBox.Show("Copia finalizada", "Informacion", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("No ha seleccionado ningun programa", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
 
         }
@@ -849,7 +905,7 @@ namespace copiaPaquetes
                             {
                                 btn.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar_noActivo;
                             }
-                            
+
                         }
                     }
                     else
@@ -865,15 +921,12 @@ namespace copiaPaquetes
                             {
                                 btn.BackgroundImage = global::copiaPaquetes.Properties.Resources.editar;
                             }
-                            
+
 
                         }
                     }
                 }
             }
-
-
-
         }
 
         #endregion
@@ -909,7 +962,7 @@ namespace copiaPaquetes
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void btn_limpiar_Click(object sender, EventArgs e)
         {
             txtProgresoCopia.Text = string.Empty;
             foreach (Control control in panel1.Controls)
